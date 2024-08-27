@@ -148,9 +148,13 @@ elif current_tab == "Clean the dataset":
 elif current_tab == "Correlation and links":
     st.title("Correlation and links")
 
+    # Clean the dataset.
     clean_df = clean(cars_list_df)
 
+    # Calculate correlations between numeric variables.
     numeric_df = cars_list_df_corr = cars_list_df.corr(numeric_only=True)
+
+    # Display insights on correlations observed in the data.
     st.markdown(
         """
         I see that Year and Mileage have a decent negative correlation (and it makes sense: newer the car, lower the milege), 
@@ -159,6 +163,7 @@ elif current_tab == "Correlation and links":
         """
     )
 
+    # Create a heatmap to visualize correlations.
     plt.figure(figsize=(11, 9))
     sns.heatmap(
         numeric_df,
@@ -185,6 +190,7 @@ elif current_tab == "Correlation and links":
     )
 
     with tab1:
+        # Scatter plot of Mileage vs Year
         plt.figure(figsize=(8, 6))
         sns.set_palette("husl")
         sns.scatterplot(data=clean_df, x="mileage", y="year")
@@ -194,6 +200,7 @@ elif current_tab == "Correlation and links":
         st.pyplot(plt.gcf())
 
     with tab2:
+        # Scatter plot of Mileage vs Price
         plt.figure(figsize=(8, 6))
         sns.set_palette("husl")
         sns.scatterplot(data=clean_df, x="mileage", y="price")
@@ -204,6 +211,7 @@ elif current_tab == "Correlation and links":
         st.pyplot(plt.gcf())
 
     with tab3:
+        # Scatter plot of Price vs Year
         plt.figure(figsize=(8, 6))
         sns.set_palette("husl")
         sns.scatterplot(data=clean_df, x="price", y="year")
@@ -214,6 +222,7 @@ elif current_tab == "Correlation and links":
         st.pyplot(plt.gcf())
 
     with tab4:
+        # Scatter plot of Price vs Mileage, with color indicating Status
         plt.figure(figsize=(8, 6))
         sns.scatterplot(
             data=clean_df, x="price", y="mileage", hue="status", palette="coolwarm"
@@ -226,6 +235,7 @@ elif current_tab == "Correlation and links":
         st.pyplot(plt.gcf())
 
     with tab5:
+        # Scatter plot of Price vs Mileage, with color indicating Brand
         top_15_brands = (
             clean_df["brand"].value_counts().nlargest(15).index.to_list()
         )  # sorted by default
@@ -244,14 +254,17 @@ elif current_tab == "Correlation and links":
         plt.legend(title="Status", bbox_to_anchor=(1, 1), loc="upper right")
         st.pyplot(plt.gcf())
 
+# Exploratory Data Analysis Tab
 elif current_tab == "Exploratory Data Analysis":
-    st.title("Correlation and links")
+    st.title("Exploratory Data Analysis")
 
+    # Clean the dataset.
     clean_df = clean(cars_list_df)
 
+    # Count the number of cars by status.
     dealers_group_counts = clean_df["status"].value_counts()
 
-    # Create the pie graph
+    # Create a pie chart to show the distribution of car statuses.
     plt.figure(figsize=(8, 8))
     plt.pie(
         dealers_group_counts,
@@ -262,6 +275,7 @@ elif current_tab == "Exploratory Data Analysis":
     plt.title("Number of cars per status")
     st.pyplot(plt.gcf())
 
+    # Create a bar chart to show the distribution of car brands.
     plt.figure(figsize=(12, 6))
     clean_df.brand.value_counts().plot(kind="bar")
     plt.title("Brands distribution")
@@ -271,6 +285,7 @@ elif current_tab == "Exploratory Data Analysis":
     plt.tight_layout()
     st.pyplot(plt.gcf())
 
+    # Create a bar chart to show the distribution of car years.
     plt.figure(figsize=(12, 6))
     clean_df.year.value_counts().sort_index().plot(kind="bar")
     plt.title("Year distribution")
@@ -280,6 +295,7 @@ elif current_tab == "Exploratory Data Analysis":
     plt.tight_layout()
     st.pyplot(plt.gcf())
 
+    # Create a bar chart to show the mean price per car brand.
     mean_price_per_brand = clean_df.groupby("brand")["price"].mean()
     plt.figure(figsize=(12, 6))
     mean_price_per_brand.plot(kind="bar")
@@ -290,21 +306,26 @@ elif current_tab == "Exploratory Data Analysis":
     plt.tight_layout()
     st.pyplot(plt.gcf())
 
+    # Filter the data to show only the top 15 car brands.
     top_15_brands = (
         clean_df["brand"].value_counts().nlargest(15).index.to_list()
     )  # sorted by default
     filtered_by_brands_df = clean_df[clean_df["brand"].isin(top_15_brands)]
+
+    # Count the sales of each car model within the top brands.
     sales_count = (
         filtered_by_brands_df.groupby(["brand", "model"])
         .size()
         .reset_index(name="sales_count")
     )
+    # Identify the most sold model for each brand.
     most_sold = (
         sales_count.groupby("brand").max().sort_values("sales_count", ascending=False)
     )
     most_sold = most_sold.reset_index()
     most_sold["brand_model"] = most_sold["brand"] + " " + most_sold["model"]
-    most_sold
+
+    # Create a bar chart to show the most sold models.
     plt.figure(figsize=(12, 6))
     sns.barplot(data=most_sold, x="brand_model", y="sales_count")
     plt.title("Quantity distribution over models")
@@ -314,11 +335,14 @@ elif current_tab == "Exploratory Data Analysis":
     plt.tight_layout()
     st.pyplot(plt.gcf())
 
+    # Identify the least sold model for each brand.
     least_sold = (
         sales_count.groupby("brand").min().sort_values("sales_count", ascending=False)
     )
     least_sold = least_sold.reset_index()
     least_sold["brand_model"] = least_sold["brand"] + " " + least_sold["model"]
+
+    # Create a bar chart to show the least sold models.
     plt.figure(figsize=(12, 6))
     sns.barplot(data=least_sold, x="brand_model", y="sales_count")
     plt.title("Quantity distribution over models")
@@ -328,21 +352,26 @@ elif current_tab == "Exploratory Data Analysis":
     plt.tight_layout()
     st.pyplot(plt.gcf())
 
+    # Filter the data to show only the top 15 dealers.
     top_15_dealers = clean_df["dealer"].value_counts().nlargest(15).index.to_list()
     filtered_by_dealers_df = clean_df[clean_df["dealer"].isin(top_15_dealers)]
+
+    # Count the sales of each brand within the top dealers.
     sales_count = (
         filtered_by_dealers_df.groupby(["dealer", "brand"])
         .size()
         .reset_index(name="sales_count")
     )
+
+    # Identify the most sold brand by each dealer.
     most_sold_by_dealer = (
         sales_count.groupby("dealer").max().sort_values("sales_count", ascending=False)
     )
     most_sold_by_dealer = most_sold_by_dealer.reset_index()
-    most_sold_by_dealer
     most_sold_by_dealer["dealer_brand"] = (
         most_sold_by_dealer["dealer"] + "-" + most_sold_by_dealer["brand"]
     )
+    # Create a bar chart to show the most sold brands by dealer.
     plt.figure(figsize=(12, 6))
     sns.barplot(data=most_sold_by_dealer, x="dealer_brand", y="sales_count")
     plt.title("Quantity distribution over models")
@@ -352,11 +381,14 @@ elif current_tab == "Exploratory Data Analysis":
     plt.tight_layout()
     st.pyplot(plt.gcf())
 
+    # Count the sales of each model within the top dealers.
     sales_count = (
         filtered_by_dealers_df.groupby(["dealer", "brand", "model"])
         .size()
         .reset_index(name="sales_count")
     )
+
+    # Identify the most sold model by each dealer.
     most_sold_model_by_dealer = (
         sales_count.groupby("dealer").max().sort_values("sales_count", ascending=False)
     )
@@ -364,6 +396,8 @@ elif current_tab == "Exploratory Data Analysis":
     most_sold_model_by_dealer["brand_model"] = (
         most_sold_model_by_dealer["brand"] + "-" + most_sold_model_by_dealer["model"]
     )
+
+    # Create a bar chart to show the most sold models by dealer.
     plt.figure(figsize=(12, 6))
     sns.barplot(
         data=most_sold_model_by_dealer,
