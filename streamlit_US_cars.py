@@ -261,6 +261,11 @@ elif current_tab == "Exploratory Data Analysis":
     # Clean the dataset.
     clean_df = clean(cars_list_df)
 
+    st.markdown("### Car Status Distribution")
+    st.markdown(
+        "Let's start by looking at the distribution of car statuses (e.g., used, new, certified). "
+        "This pie chart helps us understand the overall composition of the dataset."
+    )
     # Count the number of cars by status.
     dealers_group_counts = clean_df["status"].value_counts()
 
@@ -275,6 +280,12 @@ elif current_tab == "Exploratory Data Analysis":
     plt.title("Number of cars per status")
     st.pyplot(plt.gcf())
 
+    st.markdown("### Brand Distribution")
+    st.markdown(
+        "Here, we examine the distribution of car brands within the dataset. "
+        "This bar chart shows which brands are most common among the listings."
+    )
+
     # Create a bar chart to show the distribution of car brands.
     plt.figure(figsize=(12, 6))
     clean_df.brand.value_counts().plot(kind="bar")
@@ -284,6 +295,12 @@ elif current_tab == "Exploratory Data Analysis":
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     st.pyplot(plt.gcf())
+
+    st.markdown("### Year Distribution")
+    st.markdown(
+        "This chart displays the distribution of car production years. "
+        "It helps us see the range and frequency of car ages in the dataset."
+    )
 
     # Create a bar chart to show the distribution of car years.
     plt.figure(figsize=(12, 6))
@@ -295,6 +312,12 @@ elif current_tab == "Exploratory Data Analysis":
     plt.tight_layout()
     st.pyplot(plt.gcf())
 
+    st.markdown("### Average Price per Brand")
+    st.markdown(
+        "This bar chart shows the average price of cars for each brand. "
+        "It gives an idea of the price range associated with different car brands."
+    )
+
     # Create a bar chart to show the mean price per car brand.
     mean_price_per_brand = clean_df.groupby("brand")["price"].mean()
     plt.figure(figsize=(12, 6))
@@ -305,6 +328,12 @@ elif current_tab == "Exploratory Data Analysis":
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     st.pyplot(plt.gcf())
+
+    st.markdown("### Most Sold Models per Brand")
+    st.markdown(
+        "This section highlights the most sold car models within each brand. "
+        "Understanding which models are most popular can be insightful for market trends."
+    )
 
     # Filter the data to show only the top 15 car brands.
     top_15_brands = (
@@ -335,6 +364,12 @@ elif current_tab == "Exploratory Data Analysis":
     plt.tight_layout()
     st.pyplot(plt.gcf())
 
+    st.markdown("### Least Sold Models per Brand")
+    st.markdown(
+        "Conversely, this chart highlights the least sold models within each brand. "
+        "These models might be niche or less popular in the market."
+    )
+
     # Identify the least sold model for each brand.
     least_sold = (
         sales_count.groupby("brand").min().sort_values("sales_count", ascending=False)
@@ -351,6 +386,12 @@ elif current_tab == "Exploratory Data Analysis":
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     st.pyplot(plt.gcf())
+
+    st.markdown("### Most Sold Brands by Dealer")
+    st.markdown(
+        "This section shows which brands are most frequently sold by each dealer. "
+        "It's useful for understanding dealer specialization or focus."
+    )
 
     # Filter the data to show only the top 15 dealers.
     top_15_dealers = clean_df["dealer"].value_counts().nlargest(15).index.to_list()
@@ -380,6 +421,12 @@ elif current_tab == "Exploratory Data Analysis":
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     st.pyplot(plt.gcf())
+
+    st.markdown("### Most Sold Models by Dealer")
+    st.markdown(
+        "Finally, this chart displays the most sold models by each dealer. "
+        "It highlights which specific models are most popular within the dealer's inventory."
+    )
 
     # Count the sales of each model within the top dealers.
     sales_count = (
