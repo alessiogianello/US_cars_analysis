@@ -11,8 +11,14 @@ from io import BytesIO
 from streamlit_folium import st_folium
 
 # Dataset Import
-# Load the dataset with UTF-16 encoding into a DataFrame.
-cars_list_df = pd.read_csv("cars.csv", encoding="utf-16")
+script_dir = os.path.dirname(os.path.realpath(__file__))
+data_path = os.path.join(script_dir, "cars.csv")
+
+# Load the dataset into a DataFrame, trying UTF-16 first then falling back to UTF-8.
+try:
+    cars_list_df = pd.read_csv(data_path, encoding="utf-16")
+except (UnicodeError, ValueError):
+    cars_list_df = pd.read_csv(data_path, encoding="utf-8")
 
 
 # Define the names of the tabs to be displayed in the sidebar.
@@ -25,11 +31,9 @@ tab_names = [
 
 # Create a sidebar with a selectbox for choosing different tabs.
 current_tab = st.sidebar.selectbox("Table of content", tab_names)
-st.sidebar.markdown(
-    """
+st.sidebar.markdown("""
     **My GitHub page:**   [GitHub](https://github.com/alessiogianello)  
-    """
-)
+    """)
 
 
 # Function to clean the dataset
@@ -61,12 +65,10 @@ if current_tab == "Introduction":
         "<h2 style='text-align: center;'>Data analysis project</h2>",
         unsafe_allow_html=True,
     )
-    st.markdown(
-        """
+    st.markdown("""
     This dataset provides comprehensive information about used cars available for sale in the United States. \n
      **Data source:** https://www.kaggle.com/datasets/juanmerinobermejo/us-sales-cars-dataset
-    """
-    )
+    """)
     # Allow users to select columns to display.
     selected_columns = st.multiselect(
         "Explore the dataset by selecting columns", cars_list_df.columns
@@ -133,15 +135,13 @@ elif current_tab == "Clean the dataset":
 
     with tab2:
         # Explain the cleaning process and show a preview of the cleaned DataFrame.
-        st.markdown(
-            """
+        st.markdown("""
                 Based on these information the data will be rearranged as follows:
                 - **fixed** the column indexes
                 - **replaced** the NaN values in the columns 'dealership' with 'unknown_delaership'
                 - **removed** values with NaN price
                 
-                                """
-        )
+                                """)
         with st.expander("Resulted DataFrame Preview"):
             st.write(clean_df.head(15))
 
@@ -155,13 +155,11 @@ elif current_tab == "Correlation and links":
     numeric_df = cars_list_df_corr = cars_list_df.corr(numeric_only=True)
 
     # Display insights on correlations observed in the data.
-    st.markdown(
-        """
+    st.markdown("""
         I see that Year and Mileage have a decent negative correlation (and it makes sense: newer the car, lower the milege), 
         furthermore I see a small correlation between year and price, and as it may be expected i see that mileage and 
         price are negatively correlated.
-        """
-    )
+        """)
 
     # Create a heatmap to visualize correlations.
     plt.figure(figsize=(11, 9))
@@ -173,11 +171,9 @@ elif current_tab == "Correlation and links":
 
     st.pyplot(plt.gcf())
 
-    st.markdown(
-        """
+    st.markdown("""
         Here some interesting scatter plots:
-        """
-    )
+        """)
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs(
         [
@@ -273,7 +269,7 @@ elif current_tab == "Exploratory Data Analysis":
     plt.figure(figsize=(8, 8))
     plt.pie(
         dealers_group_counts,
-        labels=dealers_group_counts.index,
+        labels=dealers_group_counts.index.tolist(),
         autopct="%1.1f%%",
         startangle=140,
     )
@@ -320,6 +316,7 @@ elif current_tab == "Exploratory Data Analysis":
 
     # Create a bar chart to show the mean price per car brand.
     mean_price_per_brand = clean_df.groupby("brand")["price"].mean()
+    clean_df.sort_values("price")
     plt.figure(figsize=(12, 6))
     mean_price_per_brand.plot(kind="bar")
     plt.title("Year distribution")
