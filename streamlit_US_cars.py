@@ -9,10 +9,14 @@ import folium
 import io
 from io import BytesIO
 from streamlit_folium import st_folium
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
 
 # Dataset Import
 script_dir = os.path.dirname(os.path.realpath(__file__))
-data_path = os.path.join(script_dir, "cars.csv")
+data_path = os.path.join(script_dir, "data", "cars.csv")
 
 # Load the dataset into a DataFrame, trying UTF-16 first then falling back to UTF-8.
 try:
@@ -27,6 +31,7 @@ tab_names = [
     "Clean the dataset",
     "Correlation and links",
     "Exploratory Data Analysis",
+    "Price Prediction",
 ]
 
 # Create a sidebar with a selectbox for choosing different tabs.
@@ -34,6 +39,34 @@ current_tab = st.sidebar.selectbox("Table of content", tab_names)
 st.sidebar.markdown("""
     **My GitHub page:**   [GitHub](https://github.com/alessiogianello)  
     """)
+
+
+@st.cache_data
+def train_model(df):
+    model_df = df[["year", "mileage", "brand", "status", "price"]].dropna().copy()
+
+    le_brand = LabelEncoder()
+    le_status = LabelEncoder()
+    model_df["brand_enc"] = le_brand.fit_transform(model_df["brand"])
+    model_df["status_enc"] = le_status.fit_transform(model_df["status"])
+
+    features = ["year", "mileage", "brand_enc", "status_enc"]
+    X = model_df[features]
+    y = model_df["price"]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    rf = RandomForestRegressor(n_estimators=100, random_state=42)
+    rf.fit(X_train, y_train)
+    y_pred = rf.predict(X_test)
+
+    metrics = {
+        "r2": r2_score(y_test, y_pred),
+        "mae": mean_absolute_error(y_test, y_pred),
+        "rmse": np.sqrt(mean_squared_error(y_test, y_pred)),
+    }
+
+    return rf, le_brand, le_status, metrics, model_df
 
 
 # Function to clean the dataset
@@ -315,13 +348,12 @@ elif current_tab == "Exploratory Data Analysis":
     )
 
     # Create a bar chart to show the mean price per car brand.
-    mean_price_per_brand = clean_df.groupby("brand")["price"].mean()
-    clean_df.sort_values("price")
+    mean_price_per_brand = clean_df.groupby("brand")["price"].mean().sort_values(ascending=False)
     plt.figure(figsize=(12, 6))
     mean_price_per_brand.plot(kind="bar")
-    plt.title("Year distribution")
-    plt.xlabel("Year")
-    plt.ylabel("Distribution")
+    plt.title("Average Price per Brand")
+    plt.xlabel("Brand")
+    plt.ylabel("Average Price ($)")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     st.pyplot(plt.gcf())
@@ -345,10 +377,8 @@ elif current_tab == "Exploratory Data Analysis":
         .reset_index(name="sales_count")
     )
     # Identify the most sold model for each brand.
-    most_sold = (
-        sales_count.groupby("brand").max().sort_values("sales_count", ascending=False)
-    )
-    most_sold = most_sold.reset_index()
+    idx = sales_count.groupby("brand")["sales_count"].idxmax()
+    most_sold = sales_count.loc[idx].sort_values("sales_count", ascending=False)
     most_sold["brand_model"] = most_sold["brand"] + " " + most_sold["model"]
 
     # Create a bar chart to show the most sold models.
@@ -368,10 +398,8 @@ elif current_tab == "Exploratory Data Analysis":
     )
 
     # Identify the least sold model for each brand.
-    least_sold = (
-        sales_count.groupby("brand").min().sort_values("sales_count", ascending=False)
-    )
-    least_sold = least_sold.reset_index()
+    idx = sales_count.groupby("brand")["sales_count"].idxmin()
+    least_sold = sales_count.loc[idx].sort_values("sales_count", ascending=False)
     least_sold["brand_model"] = least_sold["brand"] + " " + least_sold["model"]
 
     # Create a bar chart to show the least sold models.
@@ -456,3 +484,55 @@ elif current_tab == "Exploratory Data Analysis":
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     st.pyplot(plt.gcf())
+
+elif current_tab == "Price Prediction":
+    st.title("Price Prediction")
+    st.markdown(
+        "A **Random Forest** model trained on year, mileage, brand and status to predict a car's listing price. "
+        "Use the inputs below to estimate the price of a specific car."
+    )
+
+    clean_df = clean(cars_list_df)
+    rf, le_brand, le_status, metrics, model_df = train_model(clean_df)
+
+    st.markdown("### Model Performance (test set — 20%)")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("R²", f"{metrics['r2']:.3f}")
+    col2.metric("MAE", f"${metrics['mae']:,.0f}")
+    col3.metric("RMSE", f"${metrics['rmse']:,.0f}")
+
+    st.markdown("### Feature Importance")
+    feature_names = ["Year", "Mileage", "Brand", "Status"]
+    importances = rf.feature_importances_
+    plt.figure(figsize=(7, 3))
+    sns.barplot(x=importances, y=feature_names, palette="viridis")
+    plt.title("Feature Importance — Random Forest")
+    plt.xlabel("Importance")
+    plt.tight_layout()
+    st.pyplot(plt.gcf())
+
+    st.markdown("### Predict a Car's Price")
+    col1, col2 = st.columns(2)
+    with col1:
+        pred_year = st.slider(
+            "Year",
+            int(model_df["year"].min()),
+            int(model_df["year"].max()),
+            2018,
+        )
+        pred_mileage = st.number_input(
+            "Mileage", min_value=0, max_value=300000, value=30000, step=1000
+        )
+    with col2:
+        pred_brand = st.selectbox("Brand", sorted(model_df["brand"].unique()))
+        pred_status = st.selectbox("Status", sorted(model_df["status"].unique()))
+
+    if pred_brand is not None and pred_status is not None:
+        pred_brand_enc = le_brand.transform([pred_brand])[0]
+        pred_status_enc = le_status.transform([pred_status])[0]
+        input_data = pd.DataFrame(
+            [[pred_year, pred_mileage, pred_brand_enc, pred_status_enc]],
+            columns=["year", "mileage", "brand_enc", "status_enc"],
+        )
+        predicted_price = rf.predict(input_data)[0]
+        st.metric("Estimated Price", f"${predicted_price:,.0f}")
